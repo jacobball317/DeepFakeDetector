@@ -1,125 +1,154 @@
-# Deepfake Detection Pipeline Overview
+Deepfake Detection Pipeline Overview
+  This modular pipeline detects deepfakes by combining face detection, deep feature extraction using a pre-trained Xception model, classification through a neural network, and analysis of temporal consistency across frames. Each module is independently structured to contribute to the accuracy and robustness of deepfake classification.
 
-This modular pipeline detects deepfakes by combining face detection, feature extraction using a pre-trained Xception model, classification via a neural network, and an analysis of temporal consistency between frames. Each module serves a clear and distinct purpose within the full detection process.
-------------------------------------------------------------------------
-Updated how the model works - 4/8/2025:
-The pipeline begins by extracting frames from videos in two classes — real and fake — located in separate folders. From each video, about 10 frames are sampled evenly across the video’s length. During extraction, each frame is checked for sharpness and brightness to ensure only clear, good-quality frames are selected for further processing.
+Updated Workflow — 4/23/2025:
+  The pipeline starts by sampling frames from real and fake video folders. Each video yields around 10–25 frames, filtered for clarity (not blurry) and brightness. Selected frames are resized and padded to a standard 750×750 format for consistency.
 
-Once frames are extracted, the model uses MTCNN (Multi-task Cascaded Convolutional Networks) to perform face detection. MTCNN crops out only the face region from each frame, ignoring the background and surroundings. This ensures the model focuses purely on the face — where deepfake artifacts are most likely to appear. Each detected face is resized and normalized to a standard format (299×299) suitable for feature extraction.
+  Face detection is performed using MTCNN, which extracts and aligns facial regions only — discarding the background. Each detected face is resized to 299×299 and normalized.
 
-For feature extraction, a pre-trained Xception model (with its classification head removed) is used. Each face is passed through Xception, which outputs a 2048-dimensional feature vector that captures high-level facial characteristics. A temporal consistency score (based on cosine similarity between consecutive frame features) is also computed and appended to each feature vector, enriching the input data.
+  For feature extraction, a pre-trained Xception model is used (classification head removed). The resulting 2048-dimensional facial features are further enriched with a temporal consistency score, computed using cosine similarity between consecutive frame features.
 
-Next, these features are fed into a deep Multi-Layer Perceptron (MLP) classifier. The MLP consists of multiple hidden layers (512 → 256 → 64 neurons) with Dropout applied after each layer to prevent overfitting. The model is trained using binary cross-entropy loss to classify faces as real or fake. To improve training dynamics, feature normalization is applied, and a learning rate scheduler (StepLR) gradually reduces the learning rate after 50 epochs to fine-tune the learning.
+  These vectors are passed into a deep MLP classifier with the following architecture:
 
-Finally, the model’s performance is evaluated using metrics such as accuracy, precision, recall, and F1 score. The results demonstrate how well the model can detect deepfakes based purely on facial artifacts, without being distracted by irrelevant background information.
-------------------------------------------------------------------------
+    Layers: 2049 → 512 → 256 → 64 → 32 → 1
+
+    Components: BatchNorm, Dropout, ReLU, Sigmoid
+
+    Optimization: Adam + BCELoss + StepLR scheduler
+
+  The model is trained using mini-batches, and outputs are evaluated using:
+
+    Accuracy, Precision, Recall, F1 Score
+
+    AUC-ROC score and curve
+
+    Confusion matrix
+
+    Epoch-wise Loss & Accuracy plots
+
+  Training metadata such as duration, parameter count, and hardware summary (GPU/CPU) are logged.
+
+  A demo mode is also included, where previously extracted features are loaded from .pkl files, and a saved model checkpoint is used to skip retraining — enabling instant performance evaluation.
+
+1. Face Feature Extraction (face_features.py)
+Purpose:
+Detects faces in input images and extracts 2048-dimensional embeddings.
+
+Uses MTCNN to detect and crop aligned faces
+
+Passes faces into Xception (from timm) with classification head removed
+
+Outputs a compact feature vector representing high-level facial traits
+
+2. Image Processing and Pipeline Execution (main.py)
+Purpose:
+Controls the full pipeline including preprocessing, feature extraction, training, and saving of intermediate outputs.
+
+Loads .jpg images from real/fake frame folders
+
+Runs FaceFeatureExtractor to get feature vectors
+
+Saves those vectors to .pkl files for use in demo.py
+
+Calls classify_features() to train and evaluate the MLP classifier
+
+Logs CPU/GPU/RAM utilization and plots system performance
+
+3. Classification Layer (temporal_classifier.py)
+Purpose:
+Binary classifier that predicts if a given feature vector (face + temporal score) is real or fake.
+
+Multi-layer perceptron (MLP) with dropout, batch norm, ReLU
+
+Input: 2048 (Xception) + 1 (temporal score) = 2049
+
+Output: Sigmoid score (probability of being real)
+
+Training: 200 epochs, BCELoss, Adam, StepLR
+
+Evaluation: Accuracy, Precision, Recall, F1, AUC-ROC
+
+Saves: model checkpoint, performance plots, CSV metrics
+
+4. Temporal Consistency Check (temporal_classifier.py)
+Purpose:
+Computes a similarity score between adjacent frame features to detect inconsistency.
+
+Function: compute_framewise_temporal_scores()
+
+Compares each frame’s feature to the previous one via cosine similarity
+
+Used to capture jitter or instability common in deepfakes
+
+5. Demo Mode (demo.py)
+Purpose:
+Provides a fast, checkpoint-based classification pipeline for demonstration.
+
+Loads pre-saved real_features.pkl and fake_features.pkl
+
+Loads trained model checkpoint from disk
+
+Skips image processing and training
+
+Evaluates instantly using the latest saved model
+
+End-to-End Workflow Summary
+  main.py loads images and initializes feature extractor
+
+  FaceFeatureExtractor generates Xception features
+
+  compute_framewise_temporal_scores() computes similarity scores
+
+  classify_features() trains a deep MLP on features + temporal scores
+
+  Results are saved and plotted
+
+  demo.py runs inference instantly using cached features and model
+
+Citations & Libraries
+  1. Face Detection – MTCNN
+  Library: facenet-pytorch
+
+  Paper: Zhang et al. (2016). "Joint Face Detection and Alignment using Multi-task Cascaded Convolutional Networks", IEEE Signal Processing Letters. Link
+
+  2. Feature Extraction – Xception
+  Library: timm
+
+  Paper: François Chollet (2017). "Xception: Deep Learning with Depthwise Separable Convolutions", CVPR. Link
+
+  3. MLP Classifier – PyTorch
+  Framework: PyTorch
+
+  Reference: PyTorch Neural Networks Tutorial
+
+  Textbook Reference (Optional):
+
+  Goodfellow et al. (2016). "Deep Learning", MIT Press — Chapter 6 covers feedforward neural networks and regularization via dropout. Book
+
+  4. Temporal Consistency – Cosine Similarity
+  Concept Origin: Inspired by temporal artifacts discussed in:
+
+  Matern et al. (2019). "Exploiting Visual Artifacts to Expose Deepfakes and Face Manipulations", IEEE WIFS. Link
+
+  Ciftci et al. (2020). "FakeCatcher: Detection of Synthetic Portrait Videos using Biological Signals", IEEE TBIOM. Link
+
+  Library: scikit-learn
+
+  Metric Basis: Cosine similarity is a standard method for measuring angular distance between feature vectors in embedding space.
+
+  5. Loss Function – Binary Cross Entropy
+  Function Used: torch.nn.BCELoss
+
+  Conceptual Reference:
+
+  Bishop, C. M. (2006). "Pattern Recognition and Machine Learning", Springer — Covers probabilistic binary classification with sigmoid + BCE.
+
+  6. Model Evaluation – AUC, Precision, F1
+  Library: sklearn.metrics
+
+  Evaluation Best Practices Reference:
+
+  Saito & Rehmsmeier (2015). "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets", PLoS ONE. Link
 
 
----
 
-## 1. Face Feature Extraction (`face_features.py`)
-
-Purpose:  
-The `FaceFeatureExtractor` class handles both face detection and feature extraction.
-
-- Face Detection:  
-  Utilizes MTCNN (Multi-task Cascaded Convolutional Networks) from `facenet-pytorch` to locate and align faces in input frames.
-
-- Feature Extraction:  
-  Loads a pre-trained Xception model via `timm`, removes the final classification layer, and uses the model to output 2048-dimensional feature embeddings for each detected face.
-
-- How It Fits In:  
-  This class is used to transform input images into consistent feature vectors, which are essential for classification and temporal analysis.
-
----
-
-## 2. Image Processing and Pipeline Execution (`main.py`)
-
-Purpose:  
-Coordinates the full deepfake detection pipeline, handling:
-- Data loading
-- Face feature extraction
-- Temporal score computation
-- Feature classification
-
-Main Steps:
-- Loads `.jpg` images from `ExtractedFrames/FakeExtracted` and `ExtractedFrames/RealExtracted`.
-- Uses `FaceFeatureExtractor` to extract features from each image.
-- Calls `classify_features()` to evaluate and classify real vs. fake features.
-
-How It Fits In:  
-Acts as the central orchestrator of the pipeline. It ties together feature extraction, classification, and reporting.
-
----
-
-## 3. Classification Layer (`temporal_classifier.py`)
-
-Purpose:  
-Trains a binary classifier to distinguish between real and fake images based on their feature embeddings and temporal coherence.
-
-Key Details:
-- Implements a simple Multi-Layer Perceptron (MLP) using PyTorch:
-  - Input → 256 → 64 → 1 with ReLU activations and Sigmoid output
-- Uses BCELoss (Binary Cross-Entropy) and the Adam optimizer
-- Training data includes an additional temporal consistency score for each image
-- Automatically splits data into training/testing sets and reports metrics
-
-Outputs:
-- Accuracy, precision, recall, F1 score
-- Confusion matrix
-- CSV file (`predictions.csv`) containing predicted labels for each test image
-
-How It Fits In:  
-This is the core decision-making module. It determines whether each image is likely real or fake based on visual features and temporal stability.
-
----
-
-## 4. Temporal Consistency Check (`temporal_classifier.py`)
-
-Purpose:  
-Computes a temporal similarity score for each frame based on cosine similarity between consecutive feature vectors.
-
-Key Function:
-- `compute_framewise_temporal_scores()`:  
-  Calculates the similarity between each frame and its previous one, assigning a value between 0 and 1.
-
-Why It Matters:  
-Real videos typically exhibit smooth feature transitions across frames. Deepfakes often show temporal jitter or inconsistencies that can be caught through this metric.
-
-How It Fits In:  
-These temporal scores are used as an additional feature during classification, improving the model’s ability to detect inconsistencies across time.
-
----
-
-## End-to-End Workflow
-
-1. `main.py` loads images and initializes the feature extractor
-2. Each image is processed through `FaceFeatureExtractor` to get 2048-dim feature vectors
-3. `compute_framewise_temporal_scores()` assigns a temporal score to each image
-4. `classify_features()` trains a classifier using both feature vectors and their temporal scores
-5. Results are evaluated and saved for further analysis
-
----
-
-## Citations & Libraries
-
-1. MTCNN for Face Detection  
-   Library: `facenet-pytorch`  
-   GitHub: https://github.com/timesler/facenet-pytorch  
-   Based on: Zhang et al., "Joint Face Detection and Alignment using Multi-task Cascaded Convolutional Networks", IEEE Signal Processing Letters, 2016
-
-2. Xception Model for Feature Extraction  
-   Library: `timm` (PyTorch Image Models by Ross Wightman)  
-   GitHub: https://github.com/rwightman/pytorch-image-models  
-   Original paper: "Xception: Deep Learning with Depthwise Separable Convolutions" by François Chollet (2017)
-
-3. Classification Layer  
-   Simple Multi-Layer Perceptron (MLP), inspired by PyTorch official tutorials:  
-   https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html  
-   Adapted for binary classification using sigmoid activation and BCELoss
-
-4. Temporal Consistency  
-   Based on cosine similarity of features across sequential frames  
-   Inspired by temporal analysis in FakeCatcher  
-   Scikit-learn cosine similarity:  
-   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine_similarity.html

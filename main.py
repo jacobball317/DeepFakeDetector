@@ -1,3 +1,4 @@
+# Import system and visualization libraries
 import os
 import cv2
 import numpy as np
@@ -6,21 +7,25 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import time
 import threading
+import pickle
 
-from face_features import FaceFeatureExtractor
-from temporal_classifier import classify_features  # Updated import
+# My custom imports
+from face_features import FaceFeatureExtractor  # For detecting faces + getting feature vectors
+from temporal_classifier import classify_features  # The neural net that classifies real vs. fake
 
-# GPU support
+# Try to set up GPU monitoring (for plotting utilization later)
 try:
     from pynvml import *
     nvmlInit()
     gpu_handle = nvmlDeviceGetHandleByIndex(0)
 except:
-    gpu_handle = None
+    gpu_handle = None  # fallback in case GPU isn't available or pynvml isn't installed
 
+
+# This class tracks CPU, RAM, and GPU usage while the program is running
 class SystemMonitor:
     def __init__(self, interval=1):
-        self.interval = interval
+        self.interval = interval  # how often to record data (in seconds)
         self.cpu = []
         self.ram = []
         self.gpu = []
@@ -30,10 +35,12 @@ class SystemMonitor:
         self.running = True
         self.start_time = time.time()
 
+        # Use a background thread to constantly update stats
         self.thread = threading.Thread(target=self.update_data)
         self.thread.start()
 
     def update_data(self):
+        # Every interval, record system stats
         while self.running:
             current_time = time.time() - self.start_time
             self.timestamps.append(current_time)
@@ -53,9 +60,10 @@ class SystemMonitor:
 
     def stop(self):
         self.running = False
-        self.thread.join()
+        self.thread.join()  # wait for background thread to stop
 
     def plot(self):
+        # Draw live charts for CPU, RAM, and GPU usage
         fig, ax = plt.subplots(2, 1, figsize=(10, 6))
         ax[0].set_title("CPU & RAM Usage")
         ax[1].set_title("GPU Usage (if available)")
@@ -79,6 +87,7 @@ class SystemMonitor:
         plt.show()
 
 
+# Loads all the .jpg images in a given folder
 def load_images_from_folder(folder_path):
     images = {}
     for filename in os.listdir(folder_path):
@@ -89,6 +98,7 @@ def load_images_from_folder(folder_path):
                 images[filename] = image
     return images
 
+# Given a dictionary of images, runs face detection + feature extraction
 def process_images(image_dict, extractor):
     features = {}
     for name, img in image_dict.items():
@@ -96,13 +106,15 @@ def process_images(image_dict, extractor):
         if feature_vector is not None:
             features[name] = feature_vector
         else:
-            print(f"⚠️ No face detected in {name}")
+            print(f"⚠️ No face detected in {name}")  # just in case the detector misses one
     return features
 
+# Main function that runs the full pipeline
 def main():
-    monitor = SystemMonitor()
+    monitor = SystemMonitor()  # Start system performance tracking
 
     try:
+        # Set up paths to real/fake image folders
         base_path = os.path.dirname(os.path.abspath(__file__))
         fake_path = os.path.join(base_path, "ExtractedFrames", "FakeExtracted")
         real_path = os.path.join(base_path, "ExtractedFrames", "RealExtracted")
@@ -113,6 +125,7 @@ def main():
         print("Loading real images...")
         real_images = load_images_from_folder(real_path)
 
+        # Create face extractor (uses MTCNN + Xception internally)
         print("Initializing face feature extractor...")
         extractor = FaceFeatureExtractor()
 
@@ -124,15 +137,23 @@ def main():
 
         print(f"\n✅ Done! Extracted {len(fake_features)} fake features and {len(real_features)} real features.")
 
-        # Step 1: Train classifier
+        # Save features to disk so we don’t need to recompute during demo
+        with open("real_features.pkl", "wb") as f:
+            pickle.dump(real_features, f)
+        with open("fake_features.pkl", "wb") as f:
+            pickle.dump(fake_features, f)
+        print("💾 Saved pre-extracted features to disk.")
+
+        # Train and evaluate the model on those features
         print("\n🧠 Training classifier on extracted features...")
         classify_features(real_features, fake_features)
 
     finally:
-        monitor.stop()
+        monitor.stop()  # Stop system monitoring
         print("\n📊 Plotting system utilization during processing...")
-        monitor.plot()
+        monitor.plot()  # Show performance usage charts
 
 
+# Make sure the script only runs when called directly
 if __name__ == "__main__":
     main()
