@@ -162,7 +162,7 @@ def main():
 
         # Train and evaluate the model on those features
         print("\n🧠 Training classifier on extracted features...")
-        classify_features(real_features, fake_features)
+        (training_history,acc, precision, recall, f1, auc,y_true, y_pred, y_prob) = classify_features(real_features, fake_features)
 
         # -------- CSV EXPORTS -----------
         # Ensure an output directory exists

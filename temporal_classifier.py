@@ -331,4 +331,11 @@ def classify_features(real_features, fake_features, input_dim=2048, save_to_file
             writer.writerow(["True 1", cm[1, 0], cm[1, 1]])
         print(f"📄 Metrics & confusion matrix saved in {out_dir}")
 
-    return model
+        # Return everything main() needs
+    return (
+        training_history,          # per-epoch list of dicts
+        acc, precision, recall, f1, auc,
+        y_true.flatten(),          # numpy arrays
+        y_pred.flatten(),
+        y_probs.flatten()          # probability of positive class
+    )
