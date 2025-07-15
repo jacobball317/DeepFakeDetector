@@ -7,6 +7,9 @@
   <meta name="description" content="A portfolio showcase of Jacob Ball's DeepFake Detection System using machine learning and PyTorch." />
   <title>DeepFake Detector Results</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js and Papa Parse (for interactive graphs) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
   <div class="max-w-4xl mx-auto px-4 py-10">
@@ -75,21 +78,19 @@
     <section class="mb-10" data-aos="fade-up">
       <h2 class="text-2xl font-semibold mb-4">Model Evaluation Visuals</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow p-4">
+        <div class="bg-white rounded-xl shadow p-4" data-aos="zoom-in">
+          <h3 class="text-xl font-semibold mb-2">Training Accuracy / Loss</h3>
+          <canvas id="trainChart" height="200"></canvas>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-4" data-aos="zoom-in">
+          <h3 class="text-xl font-semibold mb-2">ROC Curve</h3>
+          <canvas id="rocChart" height="200"></canvas>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2" data-aos="zoom-in">
           <h3 class="text-xl font-semibold mb-2">Confusion Matrix</h3>
-          <img src="ConfusionMatrix.JPG" alt="Confusion Matrix" class="rounded" />
-        </div>
-        <div class="bg-white rounded-xl shadow p-4">
-          <h3 class="text-xl font-semibold mb-2">Final Metrics</h3>
-          <img src="finalMetrics.png" alt="Final Metrics" class="rounded" />
-        </div>
-        <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2">
-          <h3 class="text-xl font-semibold mb-2">Training Accuracy</h3>
-          <img src="TrainingAccuracyCurve.JPG" alt="Training Accuracy" class="rounded w-full" />
-        </div>
-        <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2">
-          <h3 class="text-xl font-semibold mb-2">Training Loss</h3>
-          <img src="trainingLossCurve.JPG" alt="Training Loss" class="rounded w-full" />
+          <canvas id="cmChart" height="240"></canvas>
         </div>
       </div>
     </section>
@@ -105,5 +106,90 @@
       once: true
     });
   </script>
+<script>
+/* ---------- helper: fetch + parse CSV ---------- */
+async function loadCSV(path) {
+  const txt = await (await fetch(path)).text();
+  return Papa.parse(txt, { header: true }).data;
+}
+
+/* ----- draw training accuracy & loss ----- */
+async function drawTrainingChart() {
+  const rows = await loadCSV("csv_outputs/training_history.csv");
+  const epochs = rows.map(r => +r.epoch);
+  const acc    = rows.map(r => +r.accuracy);
+  const loss   = rows.map(r => +r.loss);
+
+  new Chart(document.getElementById("trainChart"), {
+    type: "line",
+    data: {
+      labels: epochs,
+      datasets: [
+        { label: "Accuracy", data: acc, borderWidth: 2, tension: 0.3 },
+        { label: "Loss",     data: loss, borderWidth: 2, tension: 0.3, borderDash: [6,4] }
+      ]
+    },
+    options: {
+      scales: { y: { beginAtZero: true } },
+      animation: { duration: 1000 },
+      plugins: { legend: { position: "bottom" } }
+    }
+  });
+}
+
+/* ----- draw ROC curve ----- */
+async function drawRocChart() {
+  const rows = await loadCSV("csv_outputs/roc_curve.csv");
+  const fpr = rows.map(r => +r.fpr);
+  const tpr = rows.map(r => +r.tpr);
+
+  new Chart(document.getElementById("rocChart"), {
+    type: "line",
+    data: {
+      labels: fpr,
+      datasets: [{ label: "ROC", data: tpr, borderWidth: 2, tension: 0.3 }]
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: "False Positive Rate" }, min: 0, max: 1 },
+        y: { title: { display: true, text: "True Positive Rate"  }, min: 0, max: 1 }
+      },
+      animation: { duration: 1000 },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+/* ----- draw confusion matrix as horizontal stacked bars ----- */
+async function drawCmChart() {
+  const rows = await loadCSV("csv_outputs/confusion_matrix.csv");
+  const a = +rows[1]["Pred 0"], b = +rows[1]["Pred 1"];
+  const c = +rows[2]["Pred 0"], d = +rows[2]["Pred 1"];
+
+  new Chart(document.getElementById("cmChart"), {
+    type: "bar",
+    data: {
+      labels: ["True 0", "True 1"],
+      datasets: [
+        { label: "Pred 0", data: [a, c], borderWidth: 1 },
+        { label: "Pred 1", data: [b, d], borderWidth: 1 }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      scales: { x: { beginAtZero: true } },
+      animation: { duration: 800 },
+      plugins: { legend: { position: "bottom" } }
+    }
+  });
+}
+
+/* -- run after DOM ready -- */
+document.addEventListener("DOMContentLoaded", () => {
+  drawTrainingChart();
+  drawRocChart();
+  drawCmChart();
+});
+</script>
 </body>
 </html>
