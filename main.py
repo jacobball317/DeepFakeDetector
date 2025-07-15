@@ -8,6 +8,9 @@ import matplotlib.animation as animation
 import time
 import threading
 import pickle
+import csv
+from pathlib import Path
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 
 # My custom imports
 from face_features import FaceFeatureExtractor  # For detecting faces + getting feature vectors
@@ -147,6 +150,44 @@ def main():
         # Train and evaluate the model on those features
         print("\n🧠 Training classifier on extracted features...")
         classify_features(real_features, fake_features)
+
+        # -------- CSV EXPORTS -----------
+        # Ensure an output directory exists
+        out_dir = Path("csv_outputs")
+        out_dir.mkdir(exist_ok=True)
+
+        # 1) Training history (if your classify_features() returned `training_history`)
+        if "training_history" in locals() or "training_history" in globals():
+            hist = training_history  # expecting a list of dicts: {"epoch": n, "accuracy": x, "loss": y}
+            with open(out_dir / "training_history.csv", "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=["epoch", "accuracy", "loss"])
+                writer.writeheader()
+                writer.writerows(hist)
+            print("✅  saved training_history.csv")
+
+        # 2) Summary metrics (expects acc, precision, recall, f1, auc already defined)
+        metric_vars = {"acc", "precision", "recall", "f1", "auc"}
+        if metric_vars.issubset(set(locals()) | set(globals())):
+            with open(out_dir / "metrics_summary.csv", "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Metric", "Value"])
+                writer.writerow(["Accuracy",  acc])
+                writer.writerow(["Precision", precision])
+                writer.writerow(["Recall",    recall])
+                writer.writerow(["F1 Score",  f1])
+                writer.writerow(["AUC-ROC",   auc])
+            print("✅  saved metrics_summary.csv")
+
+        # 3) Confusion matrix (expects y_true & y_pred)
+        if {"y_true", "y_pred"}.issubset(set(locals()) | set(globals())):
+            cm = confusion_matrix(y_true, y_pred)
+            with open(out_dir / "confusion_matrix.csv", "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["", "Pred 0", "Pred 1"])
+                writer.writerow(["True 0", cm[0, 0], cm[0, 1]])
+                writer.writerow(["True 1", cm[1, 0], cm[1, 1]])
+            print("✅  saved confusion_matrix.csv")
+        # ---------------------------------
 
     finally:
         monitor.stop()  # Stop system monitoring
