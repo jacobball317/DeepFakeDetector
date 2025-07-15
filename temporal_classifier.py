@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from pathlib import Path
+import csv
 
 # sklearn utilities for evaluation, preprocessing, and splitting
 from sklearn.model_selection import train_test_split
@@ -193,6 +195,10 @@ def classify_features(real_features, fake_features, input_dim=2048, save_to_file
     num_epochs = 200
     losses, accuracies = [], []
 
+    training_history = []  # store metrics per epoch
+    out_dir = Path("csv_outputs")
+    out_dir.mkdir(exist_ok=True)
+
     print("⏳ Starting training...")
     start_time = time.time()
 
@@ -224,12 +230,26 @@ def classify_features(real_features, fake_features, input_dim=2048, save_to_file
         losses.append(avg_loss)        # Save loss to plot later
         accuracies.append(accuracy)    # Save accuracy to plot later
 
+        training_history.append({
+            "epoch": epoch + 1,
+            "accuracy": round(accuracy, 4),
+            "loss": round(avg_loss, 4)
+        })
+
         # Print progress for this epoch
         print(f"Epoch {epoch + 1}/{num_epochs} - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
 
 
     duration = time.time() - start_time
     print(f"🕒 Total Training Time: {duration:.2f} seconds")
+
+    # Save epoch‑level training history
+    hist_path = out_dir / "training_history.csv"
+    with open(hist_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["epoch", "accuracy", "loss"])
+        writer.writeheader()
+        writer.writerows(training_history)
+    print(f"📄 Training history saved to {hist_path}")
 
     # Save trained model
     torch.save(model.state_dict(), "temporal_classifier_checkpoint.pth")
@@ -302,7 +322,13 @@ def classify_features(real_features, fake_features, input_dim=2048, save_to_file
             "AUC": [auc],
             "Train Time (s)": [duration],
         }
-        pd.DataFrame(metrics).to_csv("metrics_summary.csv", index=False)
-        print("📄 Metrics saved to metrics_summary.csv")
+        pd.DataFrame(metrics).to_csv(out_dir / "metrics_summary.csv", index=False)
+        # Save confusion matrix
+        with open(out_dir / "confusion_matrix.csv", "w", newline="") as f_cm:
+            writer = csv.writer(f_cm)
+            writer.writerow(["", "Pred 0", "Pred 1"])
+            writer.writerow(["True 0", cm[0, 0], cm[0, 1]])
+            writer.writerow(["True 1", cm[1, 0], cm[1, 1]])
+        print(f"📄 Metrics & confusion matrix saved in {out_dir}")
 
     return model

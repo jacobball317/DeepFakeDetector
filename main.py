@@ -10,7 +10,15 @@ import threading
 import pickle
 import csv
 from pathlib import Path
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    confusion_matrix,
+    roc_curve      # NEW
+)
 
 # My custom imports
 from face_features import FaceFeatureExtractor  # For detecting faces + getting feature vectors
@@ -85,7 +93,12 @@ class SystemMonitor:
             ax[1].legend()
             ax[1].set_ylim(0, 100)
 
-        ani = animation.FuncAnimation(fig, animate, interval=1000)
+        ani = animation.FuncAnimation(
+            fig,
+            animate,
+            interval=1000,
+            cache_frame_data=False  # suppress frames=None warning
+        )
         plt.tight_layout()
         plt.show()
 
@@ -177,6 +190,16 @@ def main():
                 writer.writerow(["F1 Score",  f1])
                 writer.writerow(["AUC-ROC",   auc])
             print("✅  saved metrics_summary.csv")
+
+        # 2b) ROC curve points (requires y_true and y_prob)
+        if {"y_true", "y_prob"}.issubset(set(locals()) | set(globals())):
+            fpr, tpr, thresholds = roc_curve(y_true, y_prob)
+            with open(out_dir / "roc_curve.csv", "w", newline="") as f_roc:
+                writer = csv.writer(f_roc)
+                writer.writerow(["threshold", "fpr", "tpr"])
+                for thr, fp, tp in zip(thresholds, fpr, tpr):
+                    writer.writerow([thr, fp, tp])
+            print("✅  saved roc_curve.csv")
 
         # 3) Confusion matrix (expects y_true & y_pred)
         if {"y_true", "y_pred"}.issubset(set(locals()) | set(globals())):
