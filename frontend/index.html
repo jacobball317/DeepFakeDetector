@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A portfolio showcase of Jacob Ball's DeepFake Detection System using machine learning and PyTorch." />
+  <title>DeepFake Detector Results</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <h1 class="text-4xl font-bold mb-6 text-center">DeepFake Detector Showcase</h1>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">Project Overview</h2>
+      <p class="text-lg leading-relaxed">
+        This project is a machine learning-based DeepFake detection system developed to identify manipulated facial videos using frame-level analysis and classification. We focused on building a lightweight yet robust model that can efficiently detect deepfakes across varied datasets. The system integrates advanced preprocessing, feature extraction, and classification techniques to ensure accuracy and scalability.
+      </p>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">My Contributions</h2>
+      <ul class="list-disc list-inside text-lg leading-relaxed">
+        <li>Led a team of five and designed the end-to-end detection pipeline using Python, OpenCV, and PyTorch.</li>
+        <li>Implemented facial detection and alignment using MTCNN for consistent feature extraction.</li>
+        <li>Engineered a feature-based classifier (MLP) and tuned hyperparameters for optimized performance.</li>
+        <li>Integrated evaluation metrics such as precision, recall, and AUC-ROC to assess model effectiveness.</li>
+        <li>Built automation scripts to load and preprocess up to 400 images per run for training consistency.</li>
+      </ul>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">Challenges Faced</h2>
+      <p class="text-lg leading-relaxed">
+        Initially, we struggled with data imbalance and poor generalization due to limited training samples. Our early models showed low precision and were prone to overfitting. We also faced challenges extracting consistent face regions from video frames due to variation in lighting and angles.
+      </p>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">What We Learned</h2>
+      <p class="text-lg leading-relaxed">
+        Throughout this project, we deepened our understanding of model generalization, data preprocessing, and pipeline design in real-world ML tasks. We saw firsthand how minor inconsistencies in face cropping or lighting can skew performance, and how important it is to account for this in both preprocessing and architecture. We also gained valuable experience working collaboratively through version control, Git, and team-based task distribution.
+      </p>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">How We Improved</h2>
+      <ul class="list-disc list-inside text-lg leading-relaxed">
+        <li>Enhanced training dataset diversity by extracting more frames per video.</li>
+        <li>Used a temporal consistency module to improve predictions across consecutive frames.</li>
+        <li>Introduced dropout and learning rate scheduling to improve generalization.</li>
+        <li>Tracked metrics across training runs and plotted graphs to monitor convergence.</li>
+      </ul>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">Technical Stack &amp; Tools</h2>
+      <ul class="list-disc list-inside text-lg leading-relaxed">
+        <li>Python for scripting and model development</li>
+        <li>PyTorch and TensorFlow for model training and evaluation</li>
+        <li>OpenCV and MTCNN for video preprocessing and face detection</li>
+        <li>Matplotlib and seaborn for visualizing performance metrics</li>
+        <li>VS Code and GitHub for version control and collaboration</li>
+      </ul>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-3">Real-World Relevance</h2>
+      <p class="text-lg leading-relaxed">
+        Deepfake content is increasingly prevalent across social media and political spheres, posing threats to privacy, misinformation, and public trust. This project illustrates a scalable, open-source solution toward mitigating such risks. By building a detection system from scratch, we not only honed our ML skills but contributed to the growing dialogue on ethical AI development.
+      </p>
+    </section>
+
+    <section class="mb-10" data-aos="fade-up">
+      <h2 class="text-2xl font-semibold mb-4">Model Evaluation Visuals</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow p-4">
+          <h3 class="text-xl font-semibold mb-2">Confusion Matrix</h3>
+          <img src="ConfusionMatrix.JPG" alt="Confusion Matrix" class="rounded" />
+        </div>
+        <div class="bg-white rounded-xl shadow p-4">
+          <h3 class="text-xl font-semibold mb-2">Final Metrics</h3>
+          <img src="finalMetrics.png" alt="Final Metrics" class="rounded" />
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2">
+          <h3 class="text-xl font-semibold mb-2">Training Accuracy</h3>
+          <img src="TrainingAccuracyCurve.JPG" alt="Training Accuracy" class="rounded w-full" />
+        </div>
+        <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2">
+          <h3 class="text-xl font-semibold mb-2">Training Loss</h3>
+          <img src="trainingLossCurve.JPG" alt="Training Loss" class="rounded w-full" />
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-10 text-center text-sm text-gray-600">
+      &copy; 2025 Jacob Ball — DeepFake Detector Project. Built with HTML, TailwindCSS, and care.
+    </footer>
+  </div>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true
+    });
+  </script>
+</body>
+</html>
