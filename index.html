@@ -91,7 +91,6 @@
         </div>
 
         <div class="bg-white rounded-xl shadow p-4 col-span-1 md:col-span-2" data-aos="zoom-in">
-          <h3 class="text-xl font-semibold mb-2">Confusion Matrix</h3>
           <canvas id="cmChart" height="240"></canvas>
         </div>
       </div>
@@ -234,63 +233,58 @@ async function drawRocChart() {
 });
 }
 
-/* ----- draw confusion matrix as 2x2 grid with text ----- */
+/* ----- draw confusion matrix as static HTML table ----- */
 async function drawCmChart() {
-  const rows = await loadCSV("csv_outputs/confusion_matrix.csv");
-  const a = +rows[1]["Pred 0"], b = +rows[1]["Pred 1"];
-  const c = +rows[2]["Pred 0"], d = +rows[2]["Pred 1"];
+  const a = 237, b = 34, c = 25, d = 234;  // matrix values
 
-  const ctx = document.getElementById("cmChart").getContext("2d");
+  const maxVal = 250;
+  const getColor = (v) => {
+    const ratio = v / maxVal;
+    const intensity = 255 - Math.round(255 * ratio); // darker for higher count
+    return `rgb(${Math.floor(intensity * 0.7)}, ${Math.floor(intensity * 0.9)}, 255)`; // brighter blue scale
+  };
 
-  new Chart(ctx, {
-    type: 'matrix',
-    data: {
-      datasets: [{
-        label: 'Confusion Matrix',
-        data: [
-          { x: 'Pred 0', y: 'True 0', v: a },
-          { x: 'Pred 1', y: 'True 0', v: b },
-          { x: 'Pred 0', y: 'True 1', v: c },
-          { x: 'Pred 1', y: 'True 1', v: d }
-        ],
-        backgroundColor: 'rgba(100, 149, 237, 0.6)',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-        borderWidth: 1,
-        width: ({ chart }) => chart.chartArea.width / 2,
-        height: ({ chart }) => chart.chartArea.height / 2
-      }]
-    },
-    options: {
-      scales: {
-        x: {
-          type: 'category',
-          labels: ['Pred 0', 'Pred 1'],
-          title: { display: true, text: 'Predicted' },
-          offset: true
-        },
-        y: {
-          type: 'category',
-          labels: ['True 1', 'True 0'],
-          title: { display: true, text: 'Actual' },
-          offset: true
-        }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: ctx => `Count: ${ctx.raw.v}`
-          }
-        },
-        datalabels: {
-          color: '#000',
-          font: { weight: 'bold' },
-          formatter: v => v.v
-        },
-        legend: { display: false }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
+  const cmContainer = document.getElementById("cmChart").parentElement;
+  cmContainer.innerHTML = `
+    <h3 class="text-xl font-semibold mb-2">Confusion Matrix</h3>
+    <div class="flex items-center justify-center gap-4">
+      <!-- Temperature Legend -->
+      <div class="flex items-center text-xs mr-4">
+        <div class="flex flex-col justify-between h-32 w-6">
+          <span class="text-right">250</span>
+          <span class="text-right">125</span>
+          <span class="text-right">0</span>
+        </div>
+        <div class="h-32 w-4 bg-gradient-to-b from-blue-900 via-blue-300 to-white rounded-sm ml-1"></div>
+      </div>
+
+      <!-- Matrix -->
+      <div class="text-center">
+        <table class="border border-gray-400 table-fixed text-center text-lg mx-auto">
+          <thead>
+            <tr>
+              <th class="border px-4 py-2"></th>
+              <th class="border px-4 py-2">Predicted Fake</th>
+              <th class="border px-4 py-2">Predicted Real</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th class="border px-4 py-2 text-left">Actual Fake</th>
+              <td class="border px-4 py-2 text-white font-semibold" style="background-color:${getColor(a)}">${a}</td>
+              <td class="border px-4 py-2" style="background-color:${getColor(b)}">${b}</td>
+            </tr>
+            <tr>
+              <th class="border px-4 py-2 text-left">Actual Real</th>
+              <td class="border px-4 py-2" style="background-color:${getColor(c)}">${c}</td>
+              <td class="border px-4 py-2 text-white font-semibold" style="background-color:${getColor(d)}">${d}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="mt-2 text-md">Predicted Label</div>
+      </div>
+    </div>
+  `;
 }
 
 /* -- run after DOM ready -- */
